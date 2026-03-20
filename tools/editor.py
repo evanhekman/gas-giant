@@ -308,12 +308,17 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 
 <!-- ── RIGHT PANEL: palette ── -->
 <div id="panel-right">
-  <div class="section-title" style="flex-shrink:0">Palette</div>
+  <div style="display:flex;align-items:baseline;gap:6px;flex-shrink:0">
+    <div class="section-title">Palette</div>
+    <span id="color-hover" style="font-size:11px;color:#666;font-family:inherit;letter-spacing:0"></span>
+  </div>
 
   <!-- transparent always at top -->
   <div style="flex-shrink:0">
-    <div class="swatch transparent" id="swatch-transparent" title="transparent"
-         onclick="selectTransparent()"></div>
+    <div class="swatch transparent" id="swatch-transparent"
+         onclick="selectTransparent()"
+         onmouseenter="document.getElementById('color-hover').textContent='transparent'"
+         onmouseleave="document.getElementById('color-hover').textContent=''"></div>
   </div>
 
   <!-- scrollable groups area -->
@@ -486,6 +491,8 @@ function renderPalette() {
       s.title = col;
       s.draggable = true;
       s.onclick = () => { selColor = {group: gi, index: ci}; renderPalette(); };
+      s.addEventListener('mouseenter', () => { document.getElementById('color-hover').textContent = col; });
+      s.addEventListener('mouseleave', () => { document.getElementById('color-hover').textContent = ''; });
       s.addEventListener('dragstart', e => {
         s.classList.add('dragging');
         e.dataTransfer.setData('text/plain', JSON.stringify({group: gi, index: ci}));
@@ -844,7 +851,31 @@ document.addEventListener('keydown', e => {
   if (e.key === '1') setBrush(1);
   if (e.key === '2') setBrush(2);
   if (e.key === '4') setBrush(4);
+  if (e.key === 'm') applyEraseMask();
 });
+
+// ── mask erase ─────────────────────────────────────────────────────────────────
+let eraseMask = null; // null pixels from h_cond_empty_0
+
+async function loadEraseMask() {
+  const res = await fetch('/api/sprites/h_cond_0');
+  if (!res.ok) return;
+  const data = await res.json();
+  // store which (x,y) positions are transparent in the mask
+  eraseMask = [];
+  for (let y = 0; y < data.height; y++)
+    for (let x = 0; x < data.width; x++)
+      if (!data.pixels[y][x] || data.pixels[y][x][3] === 0)
+        eraseMask.push([x, y]);
+}
+
+function applyEraseMask() {
+  if (!eraseMask) { alert('Mask not loaded'); return; }
+  pushHistory();
+  for (const [x, y] of eraseMask)
+    if (y < canvasH && x < canvasW) pixels[y][x] = null;
+  render();
+}
 
 // ── boot ───────────────────────────────────────────────────────────────────────
 initPixels(8, 8);
@@ -854,6 +885,7 @@ renderPalette();
 refreshGroupSelect();
 refreshSprites();
 loadPalette();
+loadEraseMask();
 </script>
 </body>
 </html>

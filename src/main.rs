@@ -2,8 +2,10 @@ use macroquad::prelude::*;
 use std::collections::HashSet;
 
 mod background;
+mod condenser;
 mod resources;
 use background::Background;
+use condenser::Condenser;
 use resources::{draw_resource_icon, RESOURCES};
 
 const TILE_SIZE: f32 = 32.0;
@@ -180,6 +182,13 @@ async fn main() {
         .map(|_| rand::gen_range(0, floor_textures.len().max(1)))
         .collect();
 
+    let mut condensers = vec![
+        Condenser::new( 1, -2).await, // top
+        Condenser::new( 1,  4).await, // bottom
+        Condenser::new(-2,  1).await, // left
+        Condenser::new( 4,  1).await, // right
+    ];
+
     loop {
         let dt = get_frame_time();
 
@@ -219,6 +228,9 @@ async fn main() {
             cam_x = scx - (mx - sx) / zoom;
             cam_y = scy - (my - sy) / zoom;
         }
+
+        // --- condenser tick ---
+        for c in &mut condensers { c.update(); }
 
         // --- player movement ---
         let moving_x = is_key_down(KeyCode::A) || is_key_down(KeyCode::D);
@@ -260,6 +272,8 @@ async fn main() {
                 draw_rectangle_lines(sx, sy, sz, sz, 1.5, DARKGRAY);
             }
         }
+
+        for c in &condensers { c.draw(screen_cx, screen_cy, cam_x, cam_y, zoom); }
 
         let player_size = TILE_SIZE * 0.6;
         let psx = screen_cx + (player_x - player_size / 2.0 - cam_x) * zoom;
