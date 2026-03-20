@@ -27,10 +27,10 @@ macro_rules! c {
 
 pub const RESOURCES: &[Resource] = &[
     // Blends
-    Resource { name: "Hydrogen", icon: ResourceIcon::Blend, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/hydrogen_blend.png") },
-    Resource { name: "Helium",   icon: ResourceIcon::Blend, color: c!(0xe0, 0x78, 0x20), sprite: Some("assets/sprites/helium_blend.png")   },
-    Resource { name: "Methane",  icon: ResourceIcon::Blend, color: c!(0x1a, 0x90, 0x80), sprite: Some("assets/sprites/methane_blend.png")  },
-    Resource { name: "Sulfur",   icon: ResourceIcon::Blend, color: c!(0xc8, 0xa8, 0x00), sprite: Some("assets/sprites/sulfur_blend.png")   },
+    Resource { name: "Hydrogen", icon: ResourceIcon::Blend, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen_blend.png") },
+    Resource { name: "Helium",   icon: ResourceIcon::Blend, color: c!(0xe0, 0x78, 0x20), sprite: Some("assets/sprites/resources/helium_blend.png")   },
+    Resource { name: "Methane",  icon: ResourceIcon::Blend, color: c!(0x1a, 0x90, 0x80), sprite: Some("assets/sprites/resources/methane_blend.png")  },
+    Resource { name: "Sulfur",   icon: ResourceIcon::Blend, color: c!(0xc8, 0xa8, 0x00), sprite: Some("assets/sprites/resources/sulfur_blend.png")   },
     // Molecules
     Resource { name: "CH4",   icon: ResourceIcon::Molecule,             color: c!(0x1a, 0x90, 0x80), sprite: None },
     Resource { name: "NH3",   icon: ResourceIcon::Molecule,             color: c!(0x2a, 0x88, 0x30), sprite: None },

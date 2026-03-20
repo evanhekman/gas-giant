@@ -173,7 +173,7 @@ async fn main() {
     // load floor tile variants and assign one randomly to each tile
     let mut floor_textures: Vec<Texture2D> = Vec::new();
     for i in 1..=6 {
-        if let Ok(t) = load_texture(&format!("assets/sprites/floor_{}.png", i)).await {
+        if let Ok(t) = load_texture(&format!("assets/sprites/floor/floor_{}.png", i)).await {
             t.set_filter(FilterMode::Nearest);
             floor_textures.push(t);
         }
@@ -232,6 +232,16 @@ async fn main() {
         // --- condenser tick ---
         for c in &mut condensers { c.update(); }
 
+        // --- collection ---
+        if is_key_pressed(KeyCode::Space) {
+            for c in &mut condensers {
+                if c.player_in_range(player_x, player_y) {
+                    let amount = c.collect();
+                    inventory.0[0] += amount as u32; // hydrogen index 0
+                }
+            }
+        }
+
         // --- player movement ---
         let moving_x = is_key_down(KeyCode::A) || is_key_down(KeyCode::D);
         let moving_y = is_key_down(KeyCode::W) || is_key_down(KeyCode::S);
@@ -273,7 +283,10 @@ async fn main() {
             }
         }
 
-        for c in &condensers { c.draw(screen_cx, screen_cy, cam_x, cam_y, zoom); }
+        for c in &condensers {
+            let in_range = c.player_in_range(player_x, player_y);
+            c.draw(screen_cx, screen_cy, cam_x, cam_y, zoom, in_range);
+        }
 
         let player_size = TILE_SIZE * 0.6;
         let psx = screen_cx + (player_x - player_size / 2.0 - cam_x) * zoom;

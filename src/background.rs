@@ -12,10 +12,14 @@ const BAND_COLORS: &[(f32, (f32, f32, f32))] = &[
     (1.00, (0.62, 0.28, 0.10)),
 ];
 
-const SCROLL_SPEED: f32 = 6.0; // blocks per second the gradient drifts
+const SCROLL_SPEED: f32 = 6.0; // blocks/sec horizontal gradient drift
 const LAYER_SPEEDS:  [f32; 3] = [0.4, 1.0, 1.8];
 const LAYER_ALPHAS:  [f32; 3] = [0.45, 0.65, 0.85];
 const LAYER_SIZES:   [(f32, f32); 3] = [(1.0, 1.0), (1.0, 2.0), (2.0, 3.0)];
+
+// Per-layer direction archetype: (vx_sign, vy_sign)
+// 0 = left→right (flat), 1 = upper-left→lower-right, 2 = lower-left→upper-right
+const LAYER_DIRS: [(f32, f32); 3] = [(1.0, 0.0), (1.0, 1.0), (1.0, -1.0)];
 
 // Spice particle colors (warm light tones against the orange gas)
 const SPICE_COLORS: [(f32, f32, f32); 5] = [
@@ -40,7 +44,7 @@ pub struct Background {
     gradient_w: u32,
     gradient_h: u32,
     particles: Vec<Particle>,
-    scroll: f32, // fractional block offset for gradient drift
+    scroll: f32, // horizontal block offset for gradient drift
 }
 
 impl Background {
@@ -105,7 +109,7 @@ impl Background {
     }
 
     fn draw_gradient(&self) {
-        let frac_offset = self.scroll.fract() * BLOCK_SIZE; // smooth sub-block offset
+        let frac_offset = self.scroll.fract() * BLOCK_SIZE;
         let col_offset  = self.scroll as u32;
         // render one extra column so the right edge stays filled during the scroll
         for col in 0..self.gradient_w + 1 {
@@ -138,11 +142,11 @@ impl Background {
                 let nx = hash_f(seed, 0);
                 let ny = hash_f(seed, 1);
 
-                // mostly horizontal drift, slight vertical wander
-                let base_vx = (hash_f(seed, 2) * 60.0 + 15.0) * speed_mul;
-                let sign    = if hash_f(seed, 3) > 0.25 { 1.0 } else { -1.0 };
-                let vx      = base_vx * sign;
-                let vy      = (hash_f(seed, 4) - 0.5) * 8.0 * speed_mul;
+                // direction archetype for this layer, with per-particle speed variation
+                let (dx, dy) = LAYER_DIRS[layer];
+                let base_speed = (hash_f(seed, 2) * 50.0 + 20.0) * speed_mul;
+                let vx = dx * base_speed;
+                let vy = dy * (hash_f(seed, 4) * 30.0 + 10.0) * speed_mul;
 
                 let size = sz_min + hash_f(seed, 5) * (sz_max - sz_min);
 

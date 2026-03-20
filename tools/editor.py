@@ -752,17 +752,54 @@ async function refreshSprites() {
     list.innerHTML = '<span style="color:#444;font-size:11px">none yet</span>';
     return;
   }
+
+  // group by folder (everything before the last '/')
+  const folders = {};
   names.forEach(name => {
-    const el = document.createElement('div');
-    el.className = 'sprite-item' + (name === currentSprite ? ' active' : '');
-    el.textContent = name;
-    el.onclick = () => loadSprite(name);
-    list.appendChild(el);
+    const slash = name.lastIndexOf('/');
+    const folder = slash >= 0 ? name.slice(0, slash) : '';
+    const base   = slash >= 0 ? name.slice(slash + 1) : name;
+    (folders[folder] = folders[folder] || []).push({ name, base });
   });
+
+  const collapsedFolders = new Set();
+
+  function renderList() {
+    list.innerHTML = '';
+    Object.entries(folders).sort(([a],[b]) => a.localeCompare(b)).forEach(([folder, items]) => {
+      if (folder) {
+        const hdr = document.createElement('div');
+        const collapsed = collapsedFolders.has(folder);
+        hdr.style.cssText = 'color:#555;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:4px 4px 2px;cursor:pointer;user-select:none;border-top:1px solid #1e1e28;margin-top:2px';
+        hdr.textContent = (collapsed ? '▶ ' : '▼ ') + folder;
+        hdr.onclick = () => {
+          if (collapsed) collapsedFolders.delete(folder);
+          else collapsedFolders.add(folder);
+          renderList();
+        };
+        list.appendChild(hdr);
+        if (collapsed) return;
+      }
+      items.forEach(({ name, base }) => {
+        const el = document.createElement('div');
+        el.className = 'sprite-item' + (name === currentSprite ? ' active' : '');
+        el.style.paddingLeft = folder ? '14px' : '6px';
+        el.textContent = base;
+        el.title = name;
+        el.onclick = () => loadSprite(name);
+        list.appendChild(el);
+      });
+    });
+  }
+  renderList();
+}
+
+function spriteUrl(name) {
+  return '/api/sprites/' + name.split('/').map(encodeURIComponent).join('/');
 }
 
 async function loadSprite(name) {
-  const res = await fetch('/api/sprites/' + encodeURIComponent(name));
+  const res = await fetch(spriteUrl(name));
   if (!res.ok) { alert('Failed to load ' + name); return; }
   const data = await res.json();
   canvasW = data.width;
@@ -802,7 +839,7 @@ function newSprite() {
 
 async function saveSprite() {
   if (!currentSprite) { alert('No sprite loaded'); return; }
-  const res = await fetch('/api/sprites/' + encodeURIComponent(currentSprite), {
+  const res = await fetch(spriteUrl(currentSprite), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ width: canvasW, height: canvasH, pixels }),
@@ -825,6 +862,7 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveSprite(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); document.getElementById('new-name').focus(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Backspace') { e.preventDefault(); removeColor(); }
   if ((e.ctrlKey || e.metaKey) && e.key === '[') {
     e.preventDefault();
     const all = allColors();
@@ -858,7 +896,7 @@ document.addEventListener('keydown', e => {
 let eraseMask = null; // null pixels from h_cond_empty_0
 
 async function loadEraseMask() {
-  const res = await fetch('/api/sprites/h_cond_0');
+  const res = await fetch('/api/sprites/machines/condenser/h_cond_0');
   if (!res.ok) return;
   const data = await res.json();
   // store which (x,y) positions are transparent in the mask
@@ -929,7 +967,10 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/sprites":
             if os.path.isdir(ASSETS_DIR):
                 names = sorted(
-                    f[:-4] for f in os.listdir(ASSETS_DIR) if f.endswith(".png")
+                    os.path.relpath(os.path.join(root, f), ASSETS_DIR)[:-4].replace(os.sep, "/")
+                    for root, _, files in os.walk(ASSETS_DIR)
+                    for f in files
+                    if f.endswith(".png")
                 )
             else:
                 names = []
@@ -937,6 +978,8 @@ class Handler(BaseHTTPRequestHandler):
 
         elif path.startswith("/api/sprites/"):
             name = path[len("/api/sprites/") :]
+            # name may contain path separators; normalise and prevent traversal
+            name = os.path.normpath(name).lstrip("/\\")
             fpath = os.path.join(ASSETS_DIR, name + ".png")
             if not os.path.exists(fpath):
                 self.send_json({"error": "not found"}, 404)
@@ -965,13 +1008,14 @@ class Handler(BaseHTTPRequestHandler):
 
         elif path.startswith("/api/sprites/"):
             name = path[len("/api/sprites/") :]
+            name = os.path.normpath(name).lstrip("/\\")
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length))
             pxs = body["pixels"]
             # null → fully transparent [0,0,0,0]
             norm = [[(px if px else [0, 0, 0, 0]) for px in row] for row in pxs]
-            os.makedirs(ASSETS_DIR, exist_ok=True)
             fpath = os.path.join(ASSETS_DIR, name + ".png")
+            os.makedirs(os.path.dirname(fpath), exist_ok=True)
             with open(fpath, "wb") as f:
                 f.write(png_encode(norm))
             self.send_json({"ok": True})
