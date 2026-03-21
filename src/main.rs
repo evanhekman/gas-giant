@@ -6,7 +6,7 @@ mod condenser;
 mod resources;
 use background::Background;
 use condenser::Condenser;
-use resources::{draw_resource_icon, RESOURCES};
+use resources::RESOURCES;
 
 const TILE_SIZE: f32 = 32.0;
 
@@ -89,23 +89,19 @@ fn draw_panel(total: &Amounts, inventory: &Amounts, textures: &[Option<Texture2D
         draw_line(pad, base_y + pad + row_h, PANEL_W - pad, base_y + pad + row_h, 1.0, PANEL_DIVIDER);
 
         let mut row = 0;
-        for (i, res) in RESOURCES.iter().enumerate().filter(|(_, r)| matches!(r.icon, resources::ResourceIcon::Blend)) {
+        for (i, res) in RESOURCES.iter().enumerate() {
+            let tex = match textures.get(i) { Some(Some(t)) => t, _ => continue };
             let amt = amounts.0[i];
             if section_idx == 0 || amt > 0 {
                 let ry = base_y + pad + row_h * (1.8 + row as f32);
                 if ry + row_h > base_y + half { break; }
 
-                // icon: sprite if loaded, else procedural fallback
                 let icon_x = pad;
                 let icon_y = ry - icon_size * 0.75;
-                if let Some(Some(tex)) = textures.get(i) {
-                    draw_texture_ex(tex, icon_x, icon_y, WHITE, DrawTextureParams {
-                        dest_size: Some(Vec2::new(icon_size, icon_size)),
-                        ..Default::default()
-                    });
-                } else {
-                    draw_resource_icon(&res.icon, res.color, icon_x + icon_size / 2.0, icon_y + icon_size / 2.0, icon_size);
-                }
+                draw_texture_ex(tex, icon_x, icon_y, WHITE, DrawTextureParams {
+                    dest_size: Some(Vec2::new(icon_size, icon_size)),
+                    ..Default::default()
+                });
 
                 // name
                 draw_text_ex(res.name, pad + icon_size + 4.0, ry, TextParams {
