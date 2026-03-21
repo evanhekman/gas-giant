@@ -473,6 +473,22 @@ function closeTab(idx) {
   renderTabs();
 }
 
+function refreshFolderDropdown(selectValue) {
+  const sel = document.getElementById('prop-folder');
+  const current = selectValue !== undefined ? selectValue : sel.value;
+  const allFolders = [...new Set([
+    ...(window._spriteFolders || []),
+    ...tabs.map(t => { if (!t.name) return ''; const s = t.name.lastIndexOf('/'); return s >= 0 ? t.name.slice(0, s) : ''; })
+  ])].filter(f => f).sort();
+  sel.innerHTML = '<option value="">(root)</option>';
+  allFolders.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f; opt.textContent = f;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
 function renderSpriteProps() {
   const name = currentSprite || '';
   const slash = name.lastIndexOf('/');
@@ -483,22 +499,8 @@ function renderSpriteProps() {
   document.getElementById('props-title').textContent = name ? 'Sprite' : 'New Sprite';
   document.getElementById('prop-name').value = base;
 
-  // populate folder dropdown
-  const sel = document.getElementById('prop-folder');
-  const allFolders = [...new Set(tabs.map(t => {
-    if (!t.name) return '';
-    const s = t.name.lastIndexOf('/');
-    return s >= 0 ? t.name.slice(0, s) : '';
-  }))];
-  // also gather from sprite list cache
-  if (window._spriteFolders) window._spriteFolders.forEach(f => { if (!allFolders.includes(f)) allFolders.push(f); });
-  sel.innerHTML = '<option value="">(root)</option>';
-  allFolders.filter(f => f).sort().forEach(f => {
-    const opt = document.createElement('option');
-    opt.value = f; opt.textContent = f;
-    sel.appendChild(opt);
-  });
-  sel.value = folder;
+  // populate folder dropdown (preserves current selection if already set)
+  refreshFolderDropdown(folder);
 
   // size buttons — reflect current canvas
   ['8','32','64'].forEach(s => {
@@ -1146,7 +1148,7 @@ async function refreshSprites() {
     (folders[folder] = folders[folder] || []).push({ name, base });
   });
   window._spriteFolders = Object.keys(folders).filter(f => f);
-  renderSpriteProps(); // refresh folder dropdown with latest folders
+  refreshFolderDropdown(); // update options, preserve current selection
 
   if (!window._collapsedFolders) window._collapsedFolders = new Set();
   const collapsedFolders = window._collapsedFolders;
@@ -1198,10 +1200,12 @@ async function loadSprite(name) {
 
 function duplicateSprite() {
   if (!currentSprite) return;
+  const prevFolder = document.getElementById('prop-folder').value;
   const copiedPixels = pixels.map(row => row.map(px => px ? (Array.isArray(px) ? [...px] : {name: px.name, rgba: [...px.rgba]}) : null));
   openTab({ name: null, pixels: copiedPixels, canvasW, canvasH, history: [], dirty: true });
-  document.getElementById('prop-name').value = '';
   refreshSprites(); renderSpriteProps();
+  document.getElementById('prop-name').value = '';
+  document.getElementById('prop-folder').value = prevFolder;
 }
 
 function getPropPath() {
@@ -1215,10 +1219,11 @@ function newSprite() {
   const sz = getNewSize(); if (!sz) return;
   const [w, h] = sz;
   const blankPixels = Array.from({length: h}, () => Array(w).fill(null));
+  const prevFolder = document.getElementById('prop-folder').value;
   openTab({ name: null, pixels: blankPixels, canvasW: w, canvasH: h, history: [], dirty: true });
-  document.getElementById('prop-name').value = '';
-  document.getElementById('prop-folder').value = '';
   refreshSprites(); renderSpriteProps();
+  document.getElementById('prop-name').value = '';
+  document.getElementById('prop-folder').value = prevFolder;
 }
 
 async function saveSprite() {
