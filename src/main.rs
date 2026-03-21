@@ -141,7 +141,10 @@ async fn main() {
     let mut bg = Background::new();
 
     let tiles = plus_tiles();
-    let tile_set: HashSet<(i32, i32)> = tiles.iter().cloned().collect();
+    let condenser_tiles: HashSet<(i32, i32)> = [(1, -2), (1, 4), (-2, 1), (4, 1)].iter().cloned().collect();
+    let tile_set: HashSet<(i32, i32)> = tiles.iter().cloned()
+        .filter(|t| !condenser_tiles.contains(t))
+        .collect();
 
     let mut zoom: f32 = 1.0;
     let mut zoom_target: f32 = 1.0;
@@ -212,13 +215,15 @@ async fn main() {
         }
 
         // --- pan ---
-        if is_mouse_button_pressed(MouseButton::Right)
+        if is_mouse_button_pressed(MouseButton::Left)
+            || is_mouse_button_pressed(MouseButton::Right)
             || is_mouse_button_pressed(MouseButton::Middle)
         {
             let (mx, my) = mouse_position();
             drag_start = Some((mx, my, cam_x, cam_y));
         }
-        if is_mouse_button_released(MouseButton::Right)
+        if is_mouse_button_released(MouseButton::Left)
+            || is_mouse_button_released(MouseButton::Right)
             || is_mouse_button_released(MouseButton::Middle)
         {
             drag_start = None;
@@ -237,7 +242,7 @@ async fn main() {
             for c in &mut condensers {
                 if c.player_in_range(player_x, player_y) {
                     let amount = c.collect();
-                    inventory.0[0] += amount as u32; // hydrogen index 0
+                    inventory.0[1] += amount as u32; // helium index 1
                 }
             }
         }
@@ -266,6 +271,7 @@ async fn main() {
         let screen_cy = screen_height() / 2.0;
 
         for (idx, &(col, row)) in tiles.iter().enumerate() {
+            if condenser_tiles.contains(&(col, row)) { continue; }
             let wx = col as f32 * TILE_SIZE;
             let wy = row as f32 * TILE_SIZE;
             let sx = screen_cx + (wx - cam_x) * zoom;

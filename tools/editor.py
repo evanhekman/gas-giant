@@ -1311,7 +1311,7 @@ document.addEventListener('keydown', e => {
 let eraseMask = null; // null pixels from h_cond_empty_0
 
 async function loadEraseMask() {
-  const res = await fetch('/api/sprites/machines/h_condenser/h_cond_0');
+  const res = await fetch('/api/sprites/machines/he_condenser/he_cond_fill_0');
   if (!res.ok) return;
   const data = await res.json();
   // store which (x,y) positions are transparent in the mask

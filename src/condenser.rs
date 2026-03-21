@@ -1,8 +1,8 @@
 use macroquad::prelude::*;
 
 const TICKS_PER_PHASE: u32 = 6; // 960 / 8 — temporary 8x speed
-const MAX_FILL: u8 = 20;
-const MAX_PHASE: u8 = 6;
+const MAX_FILL: u8 = 16;
+const MAX_PHASE: u8 = 7;
 
 pub struct Condenser {
     pub fill_level: u8, // 0–20
@@ -13,26 +13,32 @@ pub struct Condenser {
     pub col: i32,
     pub row: i32,
 
-    fill_textures: Vec<Texture2D>,  // h_cond_0 .. h_cond_20
-    phase_textures: Vec<Texture2D>, // h_cond_phase_0 .. h_cond_phase_6
+    base_texture: Texture2D,
+    fill_textures: Vec<Texture2D>,  // he_cond_fill_0 .. he_cond_fill_16
+    phase_textures: Vec<Texture2D>, // he_cond_phase_0 .. he_cond_phase_7
 }
 
 impl Condenser {
     pub async fn new(col: i32, row: i32) -> Self {
+        let base_texture = load_texture("assets/sprites/machines/he_condenser/he_cond_base.png")
+            .await
+            .expect("missing he_cond_base.png");
+        base_texture.set_filter(FilterMode::Nearest);
+
         let mut fill_textures = Vec::new();
         for i in 0..=MAX_FILL {
-            let t = load_texture(&format!("assets/sprites/machines/h_condenser/h_cond_{}.png", i))
+            let t = load_texture(&format!("assets/sprites/machines/he_condenser/he_cond_fill_{}.png", i))
                 .await
-                .expect(&format!("missing h_cond_{}.png", i));
+                .expect(&format!("missing he_cond_fill_{}.png", i));
             t.set_filter(FilterMode::Nearest);
             fill_textures.push(t);
         }
 
         let mut phase_textures = Vec::new();
         for i in 0..=MAX_PHASE {
-            let t = load_texture(&format!("assets/sprites/machines/h_condenser/h_cond_phase_{}.png", i))
+            let t = load_texture(&format!("assets/sprites/machines/he_condenser/he_cond_phase_{}.png", i))
                 .await
-                .expect(&format!("missing h_cond_phase_{}.png", i));
+                .expect(&format!("missing he_cond_phase_{}.png", i));
             t.set_filter(FilterMode::Nearest);
             phase_textures.push(t);
         }
@@ -43,6 +49,7 @@ impl Condenser {
             tick: 0,
             col,
             row,
+            base_texture,
             fill_textures,
             phase_textures,
         }
@@ -104,20 +111,9 @@ impl Condenser {
             ..Default::default()
         };
 
-        draw_texture_ex(
-            &self.fill_textures[self.fill_level as usize],
-            sx,
-            sy,
-            WHITE,
-            params.clone(),
-        );
-        draw_texture_ex(
-            &self.phase_textures[self.phase as usize],
-            sx,
-            sy,
-            WHITE,
-            params,
-        );
+        draw_texture_ex(&self.base_texture, sx, sy, WHITE, params.clone());
+        draw_texture_ex(&self.phase_textures[self.phase as usize], sx, sy, WHITE, params.clone());
+        draw_texture_ex(&self.fill_textures[self.fill_level as usize], sx, sy, WHITE, params);
 
         // highlight border when player is in range
         if in_range {
