@@ -21,7 +21,7 @@ impl Condenser {
     pub async fn new(col: i32, row: i32) -> Self {
         let mut fill_textures = Vec::new();
         for i in 0..=MAX_FILL {
-            let t = load_texture(&format!("assets/sprites/machines/condenser/h_cond_{}.png", i))
+            let t = load_texture(&format!("assets/sprites/machines/h_condenser/h_cond_{}.png", i))
                 .await
                 .expect(&format!("missing h_cond_{}.png", i));
             t.set_filter(FilterMode::Nearest);
@@ -30,7 +30,7 @@ impl Condenser {
 
         let mut phase_textures = Vec::new();
         for i in 0..=MAX_PHASE {
-            let t = load_texture(&format!("assets/sprites/machines/condenser/h_cond_phase_{}.png", i))
+            let t = load_texture(&format!("assets/sprites/machines/h_condenser/h_cond_phase_{}.png", i))
                 .await
                 .expect(&format!("missing h_cond_phase_{}.png", i));
             t.set_filter(FilterMode::Nearest);
