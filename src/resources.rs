@@ -12,7 +12,8 @@ pub struct Resource {
     pub name: &'static str,
     pub icon: ResourceIcon,
     pub color: Color,
-    pub sprite: Option<&'static str>, // path relative to assets/sprites/
+    pub sprite: Option<&'static str>,
+    pub stack_limit: u32,
 }
 
 fn lighten(c: Color) -> Color {
@@ -27,28 +28,28 @@ macro_rules! c {
 
 pub const RESOURCES: &[Resource] = &[
     // Blends
-    Resource { name: "Hydrogen", icon: ResourceIcon::Blend, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen_blend.png") },
-    Resource { name: "Helium",   icon: ResourceIcon::Blend, color: c!(0xe0, 0x78, 0x20), sprite: Some("assets/sprites/resources/helium_blend.png")   },
-    Resource { name: "Methane",  icon: ResourceIcon::Blend, color: c!(0x1a, 0x90, 0x80), sprite: Some("assets/sprites/resources/methane_blend.png")  },
-    Resource { name: "Sulfur",   icon: ResourceIcon::Blend, color: c!(0xc8, 0xa8, 0x00), sprite: Some("assets/sprites/resources/sulfur_blend.png")   },
+    Resource { name: "Hydrogen", icon: ResourceIcon::Blend, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen_blend.png"), stack_limit: 64 },
+    Resource { name: "Helium",   icon: ResourceIcon::Blend, color: c!(0xe0, 0x78, 0x20), sprite: Some("assets/sprites/resources/helium_blend.png"),   stack_limit: 32 },
+    Resource { name: "Methane",  icon: ResourceIcon::Blend, color: c!(0x1a, 0x90, 0x80), sprite: Some("assets/sprites/resources/methane_blend.png"),  stack_limit: 64 },
+    Resource { name: "Sulfur",   icon: ResourceIcon::Blend, color: c!(0xc8, 0xa8, 0x00), sprite: Some("assets/sprites/resources/sulfur_blend.png"),   stack_limit: 64 },
     // Molecules
-    Resource { name: "CH4",   icon: ResourceIcon::Molecule,             color: c!(0x1a, 0x90, 0x80), sprite: Some("assets/sprites/resources/methane.png")        },
-    Resource { name: "NH3",   icon: ResourceIcon::Molecule,             color: c!(0x2a, 0x88, 0x30), sprite: None },
-    Resource { name: "H2S",   icon: ResourceIcon::Molecule,             color: c!(0x7a, 0x98, 0x00), sprite: None },
-    Resource { name: "NH4SH", icon: ResourceIcon::Molecule,             color: c!(0x6b, 0x70, 0x20), sprite: None },
-    Resource { name: "H2O",   icon: ResourceIcon::Molecule,             color: c!(0x18, 0x60, 0xc0), sprite: None },
-    Resource { name: "O2",    icon: ResourceIcon::Molecule,             color: c!(0x08, 0x98, 0xb8), sprite: None },
-    Resource { name: "N2",    icon: ResourceIcon::Molecule,             color: c!(0x58, 0x40, 0xb0), sprite: None },
-    Resource { name: "CO2",   icon: ResourceIcon::Molecule,             color: c!(0x50, 0x50, 0x50), sprite: Some("assets/sprites/resources/carbon-dioxide.png") },
-    Resource { name: "C",     icon: ResourceIcon::Molecule,             color: c!(0x28, 0x28, 0x28), sprite: None },
-    Resource { name: "S",     icon: ResourceIcon::Molecule,             color: c!(0xc8, 0xa8, 0x00), sprite: None },
-    Resource { name: "PH3",   icon: ResourceIcon::Molecule,             color: c!(0xc0, 0x30, 0x10), sprite: None },
+    Resource { name: "CH4",   icon: ResourceIcon::Molecule, color: c!(0x1a, 0x90, 0x80), sprite: Some("assets/sprites/resources/methane.png"),        stack_limit: 64 },
+    Resource { name: "NH3",   icon: ResourceIcon::Molecule, color: c!(0x2a, 0x88, 0x30), sprite: None,                                                stack_limit: 64 },
+    Resource { name: "H2S",   icon: ResourceIcon::Molecule, color: c!(0x7a, 0x98, 0x00), sprite: None,                                                stack_limit: 64 },
+    Resource { name: "NH4SH", icon: ResourceIcon::Molecule, color: c!(0x6b, 0x70, 0x20), sprite: None,                                                stack_limit: 64 },
+    Resource { name: "H2O",   icon: ResourceIcon::Molecule, color: c!(0x18, 0x60, 0xc0), sprite: None,                                                stack_limit: 64 },
+    Resource { name: "O2",    icon: ResourceIcon::Molecule, color: c!(0x08, 0x98, 0xb8), sprite: None,                                                stack_limit: 64 },
+    Resource { name: "N2",    icon: ResourceIcon::Molecule, color: c!(0x58, 0x40, 0xb0), sprite: None,                                                stack_limit: 64 },
+    Resource { name: "CO2",   icon: ResourceIcon::Molecule, color: c!(0x50, 0x50, 0x50), sprite: Some("assets/sprites/resources/carbon-dioxide.png"), stack_limit: 64 },
+    Resource { name: "C",     icon: ResourceIcon::Molecule, color: c!(0x28, 0x28, 0x28), sprite: None,                                                stack_limit: 64 },
+    Resource { name: "S",     icon: ResourceIcon::Molecule, color: c!(0xc8, 0xa8, 0x00), sprite: None,                                                stack_limit: 64 },
+    Resource { name: "PH3",   icon: ResourceIcon::Molecule, color: c!(0xc0, 0x30, 0x10), sprite: None,                                                stack_limit: 64 },
     // Isotopes
-    Resource { name: "H1",  icon: ResourceIcon::Isotope { rings: 0 }, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen-1.png") },
-    Resource { name: "H2",  icon: ResourceIcon::Isotope { rings: 1 }, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen-2.png") },
-    Resource { name: "H3",  icon: ResourceIcon::Isotope { rings: 2 }, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen-3.png") },
-    Resource { name: "He4", icon: ResourceIcon::Isotope { rings: 0 }, color: c!(0xe0, 0x78, 0x20), sprite: Some("assets/sprites/resources/helium-4.png")   },
-    Resource { name: "He3", icon: ResourceIcon::Isotope { rings: 1 }, color: c!(0xe0, 0x78, 0x20), sprite: Some("assets/sprites/resources/helium-3.png")   },
+    Resource { name: "H1",  icon: ResourceIcon::Isotope { rings: 0 }, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen-1.png"), stack_limit: 64 },
+    Resource { name: "H2",  icon: ResourceIcon::Isotope { rings: 1 }, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen-2.png"), stack_limit: 64 },
+    Resource { name: "H3",  icon: ResourceIcon::Isotope { rings: 2 }, color: c!(0xe8, 0x79, 0xa0), sprite: Some("assets/sprites/resources/hydrogen-3.png"), stack_limit: 64 },
+    Resource { name: "He4", icon: ResourceIcon::Isotope { rings: 0 }, color: c!(0xe0, 0x78, 0x20), sprite: Some("assets/sprites/resources/helium-4.png"),   stack_limit: 32 },
+    Resource { name: "He3", icon: ResourceIcon::Isotope { rings: 1 }, color: c!(0xe0, 0x78, 0x20), sprite: Some("assets/sprites/resources/helium-3.png"),   stack_limit: 32 },
 ];
 
 // Hex vertices for a flat-top hexagon (0°, 60°, 120°, ...)

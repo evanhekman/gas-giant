@@ -75,57 +75,88 @@ fn draw_panel(total: &Amounts, inventory: &Amounts, textures: &[Option<Texture2D
     draw_line(0.0, half, PANEL_W, half, 1.0, PANEL_DIVIDER);
     draw_line(PANEL_W, 0.0, PANEL_W, h, 1.0, PANEL_DIVIDER);
 
-    for (section_idx, (label, amounts, origin_y)) in [
-        ("RESOURCES", total,     0.0),
-        ("INVENTORY", inventory, half),
-    ].iter().enumerate() {
-        let base_y = *origin_y;
+    // --- RESOURCES (top half) ---
+    draw_text_ex("RESOURCES", pad, pad + row_h * 0.85, TextParams {
+        font_size, color: LABEL_COLOR, ..Default::default()
+    });
+    draw_line(pad, pad + row_h, PANEL_W - pad, pad + row_h, 1.0, PANEL_DIVIDER);
 
-        draw_text_ex(label, pad, base_y + pad + row_h * 0.85, TextParams {
-            font_size,
-            color: LABEL_COLOR,
+    let mut row = 0;
+    for (i, res) in RESOURCES.iter().enumerate() {
+        let tex = match textures.get(i) { Some(Some(t)) => t, _ => continue };
+        let amt = total.0[i];
+        let ry = pad + row_h * (1.8 + row as f32);
+        if ry + row_h > half { break; }
+
+        draw_texture_ex(tex, pad, ry - icon_size * 0.75, WHITE, DrawTextureParams {
+            dest_size: Some(Vec2::new(icon_size, icon_size)),
             ..Default::default()
         });
-        draw_line(pad, base_y + pad + row_h, PANEL_W - pad, base_y + pad + row_h, 1.0, PANEL_DIVIDER);
+        draw_text_ex(res.name, pad + icon_size + 4.0, ry, TextParams {
+            font_size, color: LABEL_COLOR, ..Default::default()
+        });
+        draw_text_ex(&amt.to_string(), PANEL_W - pad - 24.0, ry, TextParams {
+            font_size, color: WHITE, ..Default::default()
+        });
+        row += 1;
+    }
 
-        let mut row = 0;
-        for (i, res) in RESOURCES.iter().enumerate() {
-            let tex = match textures.get(i) { Some(Some(t)) => t, _ => continue };
-            let amt = amounts.0[i];
-            if section_idx == 0 || amt > 0 {
-                let ry = base_y + pad + row_h * (1.8 + row as f32);
-                if ry + row_h > base_y + half { break; }
+    // --- INVENTORY (bottom half, 3-col × 10-row grid) ---
+    let inv_top = half;
+    draw_text_ex("INVENTORY", pad, inv_top + pad + row_h * 0.85, TextParams {
+        font_size, color: LABEL_COLOR, ..Default::default()
+    });
+    draw_line(pad, inv_top + pad + row_h, PANEL_W - pad, inv_top + pad + row_h, 1.0, PANEL_DIVIDER);
 
-                let icon_x = pad;
-                let icon_y = ry - icon_size * 0.75;
-                draw_texture_ex(tex, icon_x, icon_y, WHITE, DrawTextureParams {
-                    dest_size: Some(Vec2::new(icon_size, icon_size)),
-                    ..Default::default()
-                });
+    const COLS: usize = 3;
+    const ROWS: usize = 10;
+    let grid_pad = 6.0;
+    let cell_size = (PANEL_W - grid_pad * 2.0) / COLS as f32;
+    let grid_top = inv_top + pad + row_h * 1.4;
+    let cell_h = (h - grid_top - grid_pad) / ROWS as f32;
 
-                // name
-                draw_text_ex(res.name, pad + icon_size + 4.0, ry, TextParams {
-                    font_size,
-                    color: LABEL_COLOR,
-                    ..Default::default()
-                });
-
-                // amount (right-aligned)
-                let amt_str = amt.to_string();
-                draw_text_ex(&amt_str, PANEL_W - pad - 24.0, ry, TextParams {
-                    font_size,
-                    color: WHITE,
-                    ..Default::default()
-                });
-
-                row += 1;
-            }
+    // Build sorted list of (resource_index, stacks) — one entry per full+partial stack
+    let mut slots: Vec<(usize, u32)> = Vec::new();
+    for (i, res) in RESOURCES.iter().enumerate() {
+        let mut remaining = inventory.0[i];
+        if remaining == 0 { continue; }
+        while remaining > 0 {
+            let stack = remaining.min(res.stack_limit);
+            slots.push((i, stack));
+            remaining -= stack;
         }
-        // if nothing in inventory
-        if section_idx == 1 && row == 0 {
-            draw_text_ex("(empty)", pad, base_y + pad + row_h * 1.8, TextParams {
-                font_size,
-                color: LABEL_COLOR,
+    }
+
+    let cell_bg   = Color::new(0.15, 0.15, 0.18, 1.0);
+    let cell_border = Color::new(0.28, 0.28, 0.33, 1.0);
+
+    for grid_slot in 0..(COLS * ROWS) {
+        let col = (grid_slot % COLS) as f32;
+        let row = (grid_slot / COLS) as f32;
+        let cx = grid_pad + col * cell_size;
+        let cy = grid_top + row * cell_h;
+
+        draw_rectangle(cx, cy, cell_size - 1.0, cell_h - 1.0, cell_bg);
+        draw_rectangle_lines(cx, cy, cell_size - 1.0, cell_h - 1.0, 1.0, cell_border);
+
+        if let Some(&(res_idx, stack)) = slots.get(grid_slot) {
+            let icon_draw_size = cell_h.min(cell_size) - 6.0;
+            let ix = cx + (cell_size - icon_draw_size) / 2.0;
+            let iy = cy + (cell_h - icon_draw_size) / 2.0;
+
+            if let Some(Some(tex)) = textures.get(res_idx) {
+                draw_texture_ex(tex, ix, iy, WHITE, DrawTextureParams {
+                    dest_size: Some(Vec2::new(icon_draw_size, icon_draw_size)),
+                    ..Default::default()
+                });
+            }
+
+            let res = &RESOURCES[res_idx];
+            let count_str = stack.to_string();
+            let count_color = if stack == res.stack_limit { Color::new(1.0, 0.85, 0.3, 1.0) } else { WHITE };
+            draw_text_ex(&count_str, cx + cell_size - 2.0 - count_str.len() as f32 * 7.0, cy + cell_h - 3.0, TextParams {
+                font_size: 10,
+                color: count_color,
                 ..Default::default()
             });
         }
@@ -154,9 +185,8 @@ async fn main() {
 
     let mut total = Amounts::new();
     let mut inventory = Amounts::new();
-    // placeholder values
+    // placeholder totals
     total.0[0] = 120; total.0[1] = 45; total.0[2] = 8; total.0[3] = 3;
-    inventory.0[0] = 10; inventory.0[1] = 3;
 
     // load resource textures (None if sprite path not set or file missing)
     let mut resource_textures: Vec<Option<Texture2D>> = Vec::new();
