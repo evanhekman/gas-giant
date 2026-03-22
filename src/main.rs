@@ -63,59 +63,56 @@ fn plus_tiles() -> Vec<(i32, i32)> {
     tiles
 }
 
-fn draw_panel(total: &Amounts, inventory: &Amounts, textures: &[Option<Texture2D>]) {
+fn draw_panel(total: &Amounts, inventory: &Amounts, textures: &[Option<Texture2D>], font: &Font) {
     let h = screen_height();
     let half = h / 2.0;
     let pad = 8.0;
-    let icon_size = 16.0;
-    let row_h = 20.0;
-    let font_size = 13u16;
+    let header_size = 8u16;
+
+    let icon_size = 20.0;
+    let res_row_h = 28.0;
+    let res_font = 8u16;
+    let inv_row_h = 26.0;
+    let inv_font = 7u16;
 
     draw_rectangle(0.0, 0.0, PANEL_W, h, PANEL_BG);
     draw_line(0.0, half, PANEL_W, half, 1.0, PANEL_DIVIDER);
     draw_line(PANEL_W, 0.0, PANEL_W, h, 1.0, PANEL_DIVIDER);
 
-    // --- RESOURCES (top half) ---
-    draw_text_ex("RESOURCES", pad, pad + row_h * 0.85, TextParams {
-        font_size, color: LABEL_COLOR, ..Default::default()
+    // --- RESOURCES ---
+    draw_text_ex("RESOURCES", pad, pad + res_row_h * 0.85, TextParams {
+        font: Some(font), font_size: header_size, color: LABEL_COLOR, ..Default::default()
     });
-    draw_line(pad, pad + row_h, PANEL_W - pad, pad + row_h, 1.0, PANEL_DIVIDER);
+    draw_line(pad, pad + res_row_h, PANEL_W - pad, pad + res_row_h, 1.0, PANEL_DIVIDER);
 
     let mut row = 0;
     for (i, res) in RESOURCES.iter().enumerate() {
         let tex = match textures.get(i) { Some(Some(t)) => t, _ => continue };
         let amt = total.0[i];
-        let ry = pad + row_h * (1.8 + row as f32);
-        if ry + row_h > half { break; }
+        let ry = pad + res_row_h * (1.8 + row as f32);
+        if ry + res_row_h > half { break; }
 
         draw_texture_ex(tex, pad, ry - icon_size * 0.75, WHITE, DrawTextureParams {
-            dest_size: Some(Vec2::new(icon_size, icon_size)),
-            ..Default::default()
+            dest_size: Some(Vec2::new(icon_size, icon_size)), ..Default::default()
         });
-        draw_text_ex(res.name, pad + icon_size + 4.0, ry, TextParams {
-            font_size, color: LABEL_COLOR, ..Default::default()
+        let name_upper = res.name.to_uppercase();
+        draw_text_ex(&name_upper, pad + icon_size + 5.0, ry, TextParams {
+            font: Some(font), font_size: res_font, color: LABEL_COLOR, ..Default::default()
         });
         draw_text_ex(&amt.to_string(), PANEL_W - pad - 24.0, ry, TextParams {
-            font_size, color: WHITE, ..Default::default()
+            font: Some(font), font_size: res_font, color: WHITE, ..Default::default()
         });
         row += 1;
     }
 
-    // --- INVENTORY (bottom half, 3-col × 10-row grid) ---
+    // --- INVENTORY ---
     let inv_top = half;
-    draw_text_ex("INVENTORY", pad, inv_top + pad + row_h * 0.85, TextParams {
-        font_size, color: LABEL_COLOR, ..Default::default()
+    draw_text_ex("INVENTORY", pad, inv_top + pad + inv_row_h * 0.85, TextParams {
+        font: Some(font), font_size: header_size, color: LABEL_COLOR, ..Default::default()
     });
-    draw_line(pad, inv_top + pad + row_h, PANEL_W - pad, inv_top + pad + row_h, 1.0, PANEL_DIVIDER);
+    draw_line(pad, inv_top + pad + inv_row_h, PANEL_W - pad, inv_top + pad + inv_row_h, 1.0, PANEL_DIVIDER);
 
-    const COLS: usize = 3;
-    const ROWS: usize = 10;
-    let grid_pad = 6.0;
-    let cell_size = (PANEL_W - grid_pad * 2.0) / COLS as f32;
-    let grid_top = inv_top + pad + row_h * 1.4;
-    let cell_h = (h - grid_top - grid_pad) / ROWS as f32;
-
-    // Build sorted list of (resource_index, stacks) — one entry per full+partial stack
+    // Build sorted slots
     let mut slots: Vec<(usize, u32)> = Vec::new();
     for (i, res) in RESOURCES.iter().enumerate() {
         let mut remaining = inventory.0[i];
@@ -127,44 +124,52 @@ fn draw_panel(total: &Amounts, inventory: &Amounts, textures: &[Option<Texture2D
         }
     }
 
-    let cell_bg   = Color::new(0.15, 0.15, 0.18, 1.0);
+    const COLS: usize = 3;
+    const ROWS: usize = 10;
+    let col_w = (PANEL_W - pad * 2.0) / COLS as f32;
+    let grid_top = inv_top + pad + inv_row_h * 1.4;
+
+    let cell_bg     = Color::new(0.15, 0.15, 0.18, 1.0);
     let cell_border = Color::new(0.28, 0.28, 0.33, 1.0);
 
     for grid_slot in 0..(COLS * ROWS) {
-        let col = (grid_slot % COLS) as f32;
-        let row = (grid_slot / COLS) as f32;
-        let cx = grid_pad + col * cell_size;
-        let cy = grid_top + row * cell_h;
+        let col = grid_slot % COLS;
+        let row = grid_slot / COLS;
+        let cx = pad + col as f32 * col_w;
+        let cy = grid_top + row as f32 * inv_row_h;
+        let cw = col_w - 1.0;
+        let ch = inv_row_h - 1.0;
 
-        draw_rectangle(cx, cy, cell_size - 1.0, cell_h - 1.0, cell_bg);
-        draw_rectangle_lines(cx, cy, cell_size - 1.0, cell_h - 1.0, 1.0, cell_border);
+        draw_rectangle(cx, cy, cw, ch, cell_bg);
+        draw_rectangle_lines(cx, cy, cw, ch, 1.0, cell_border);
 
-        if let Some(&(res_idx, stack)) = slots.get(grid_slot) {
-            let icon_draw_size = cell_h.min(cell_size) - 6.0;
-            let ix = cx + (cell_size - icon_draw_size) / 2.0;
-            let iy = cy + (cell_h - icon_draw_size) / 2.0;
+        let Some(&(res_idx, stack)) = slots.get(grid_slot) else { continue };
 
-            if let Some(Some(tex)) = textures.get(res_idx) {
-                draw_texture_ex(tex, ix, iy, WHITE, DrawTextureParams {
-                    dest_size: Some(Vec2::new(icon_draw_size, icon_draw_size)),
-                    ..Default::default()
-                });
-            }
-
-            let res = &RESOURCES[res_idx];
-            let count_str = stack.to_string();
-            let count_color = if stack == res.stack_limit { Color::new(1.0, 0.85, 0.3, 1.0) } else { WHITE };
-            draw_text_ex(&count_str, cx + cell_size - 2.0 - count_str.len() as f32 * 7.0, cy + cell_h - 3.0, TextParams {
-                font_size: 10,
-                color: count_color,
-                ..Default::default()
+        // icon, vertically centred
+        let iy = cy + (ch - icon_size) / 2.0;
+        if let Some(Some(tex)) = textures.get(res_idx) {
+            draw_texture_ex(tex, cx + 2.0, iy, WHITE, DrawTextureParams {
+                dest_size: Some(Vec2::new(icon_size, icon_size)), ..Default::default()
             });
         }
+
+        // count to the right of icon, vertically centred
+        let res = &RESOURCES[res_idx];
+        let count_str = stack.to_string();
+        let count_color = if stack == res.stack_limit { Color::new(1.0, 0.85, 0.3, 1.0) } else { WHITE };
+        let tx = cx + icon_size + 5.0;
+        let ty = cy + ch * 0.72;
+        draw_text_ex(&count_str, tx, ty, TextParams {
+            font: Some(font), font_size: inv_font, color: count_color, ..Default::default()
+        });
     }
 }
 
 #[macroquad::main("Gas Giant")]
 async fn main() {
+    let ui_font = load_ttf_font("assets/fonts/PressStart2P-Regular.ttf").await
+        .expect("failed to load UI font");
+
     let mut bg = Background::new();
 
     let tiles = plus_tiles();
@@ -327,7 +332,7 @@ async fn main() {
         draw_rectangle(psx, psy, psz, psz, YELLOW);
 
         // --- draw UI (always on top, screen-space) ---
-        draw_panel(&total, &inventory, &resource_textures);
+        draw_panel(&total, &inventory, &resource_textures, &ui_font);
 
         next_frame().await;
     }
